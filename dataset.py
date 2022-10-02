@@ -19,6 +19,7 @@ class SeqClsDataset(Dataset):
         self._idx2label = {idx: intent for intent, idx in self.label_mapping.items()}
         self.max_len = max_len
 
+        self.collate_fn()
     def __len__(self) -> int:
         return len(self.data)
 
@@ -30,9 +31,16 @@ class SeqClsDataset(Dataset):
     def num_classes(self) -> int:
         return len(self.label_mapping)
 
-    def collate_fn(self, samples: List[Dict]) -> Dict:
+    def collate_fn(self):
         # TODO: implement collate_fn
-        raise NotImplementedError
+        #x,y = {x: intent,y: intent for text, intent in List}
+        textList = map(lambda d: d['text'], self.data)
+        text = self.vocab.encode_batch(textList,128)
+        
+        intent = [self.label2idx(data['intent']) for data in self.data]
+        
+        self.dataTrans = [text,intent]
+        #return text,intent
 
     def label2idx(self, label: str):
         return self.label_mapping[label]

@@ -36,6 +36,14 @@ class SeqClassifier(torch.nn.Module):
         )
 
         self.linear = torch.nn.Linear(in_features=hidden_size, out_features=1)
+        self.seq = torch.nn.Sequential(
+            
+            torch.nn.Linear(1024, num_class),
+            #torch.nn.ReLU(),
+            #torch.nn.Softmax(),
+            
+            
+            )
 
         
     @property
@@ -45,15 +53,16 @@ class SeqClassifier(torch.nn.Module):
 
     def forward(self, batch) -> Dict[str, torch.Tensor]:
         # TODO: implement model forward
+        embedding = self.embed(batch)
         
         h0 = torch.zeros(self.num_layers, self.hidden_size).requires_grad_()
         c0 = torch.zeros(self.num_layers, self.hidden_size).requires_grad_()
 
-        L, (hn, Cn) = self.lstm(batch, (h0, c0))
+        L, (hn, Cn) = self.lstm(embedding, (h0, c0))
         #out = self.linear(hn[0]).flatten()  # First dim of Hn is num_layers, which is set to 1 above.
         
         pred = self.linear(L).flatten() 
-        
+        result = self.seq(pred)
         return pred
 
         

@@ -67,9 +67,9 @@ def train_model(data_loader, model, optimizer):
     num_batches = len(data_loader)
     model.train()
     total_acc = 0
-    for data in tqdm(data_loader):
-        X = np.array(data['text'])
-        y = np.array(data['intent'])
+    for dataTrans in tqdm(data_loader):
+        X = dataTrans[0]
+        y = dataTrans[1]
         output = model(X)
         loss = loss_function(output,y)
         loss.backward()
