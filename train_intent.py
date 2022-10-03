@@ -13,6 +13,7 @@ from utils import Vocab
 from model import SeqClassifier
 from torch.utils.data import DataLoader,TensorDataset
 import numpy as np
+from torchmetrics import Accuracy
 
 TRAIN = "train"
 DEV = "eval"
@@ -48,11 +49,13 @@ def main(args):
             args.bidirectional,
             len(intent2idx),
             300)
+    model = model.cuda()
 
     # TODO: init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
+    #epoch_pbar = trange(2, desc="Epoch")
     for epoch in epoch_pbar:
         # TODO: Training loop - iterate over train dataloader and update model weights
         train_model(train_loader,model,optimizer)
@@ -67,22 +70,31 @@ def train_model(data_loader, model, optimizer):
     num_batches = len(data_loader)
     model.train()
     total_acc = 0
+    
+    model.zero_grad()
+    
     for dataTrans in tqdm(data_loader):
-        X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',dataTrans['text'])))
-        y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',dataTrans['intent'])))
+        X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',dataTrans['text']))).cuda()
+        y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',dataTrans['intent']))).long()
+        y = torch.nn.functional.one_hot(y,num_classes = 150).float().cuda()
         output = model(X)
         loss = loss_function(output,y)
         loss.backward()
 
-        optimizer.zero_grad()
+        #optimizer.zero_grad()
         optimizer.step()
         
+        pred = torch.argmax(output, dim=1)
+        ans = torch.argmax(y, dim=1)
+        
+        #out = torch.zeros_like(output).scatter_(1, pred.unsqueeze(1), 1.)
         #total_loss += loss.item()
-        total_acc += (output.argmax(1) == y).sum().item()
+        accuracy = Accuracy().cuda()
+        total_acc += accuracy(pred, ans)
     
     total_acc = total_acc / num_batches
-    print(f"Accuracy: {total_acc}")
-
+    print(f"Accuracy: {total_acc * 100} %")
+    
 def eval_model(data_loader, model):
 
     num_batches = len(data_loader)
