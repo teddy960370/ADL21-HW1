@@ -55,15 +55,15 @@ class SeqClassifier(torch.nn.Module):
         # TODO: implement model forward
         embedding = self.embed(batch)
         
-        h0 = torch.zeros(self.num_layers, self.hidden_size).requires_grad_()
-        c0 = torch.zeros(self.num_layers, self.hidden_size).requires_grad_()
+        h0 = torch.zeros(128, self.intput_size, self.num_class * self.num_layers).requires_grad_()
+        c0 = torch.zeros(128, self.intput_size, self.num_class * self.num_layers).requires_grad_()
 
         L, (hn, Cn) = self.lstm(embedding, (h0, c0))
         #out = self.linear(hn[0]).flatten()  # First dim of Hn is num_layers, which is set to 1 above.
         
         pred = self.linear(L).flatten() 
         result = self.seq(pred)
-        return pred
+        return result
 
         
         raise NotImplementedError

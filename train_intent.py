@@ -47,7 +47,7 @@ def main(args):
             args.dropout,
             args.bidirectional,
             len(intent2idx),
-            args.max_len)
+            300)
 
     # TODO: init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -68,8 +68,8 @@ def train_model(data_loader, model, optimizer):
     model.train()
     total_acc = 0
     for dataTrans in tqdm(data_loader):
-        X = dataTrans[0]
-        y = dataTrans[1]
+        X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',dataTrans['text'])))
+        y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',dataTrans['intent'])))
         output = model(X)
         loss = loss_function(output,y)
         loss.backward()
