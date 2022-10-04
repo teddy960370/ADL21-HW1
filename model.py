@@ -2,7 +2,7 @@ from typing import Dict
 
 import torch
 from torch.nn import Embedding
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class SeqClassifier(torch.nn.Module):
     def __init__(
@@ -55,8 +55,8 @@ class SeqClassifier(torch.nn.Module):
         # TODO: implement model forward
         embedding = self.embed(batch)
         
-        h0 = torch.zeros(4, batch.shape[0], self.hidden_size).requires_grad_().cuda()
-        c0 = torch.zeros(4, batch.shape[0], self.hidden_size).requires_grad_().cuda()
+        h0 = torch.zeros(4, batch.shape[0], self.hidden_size).requires_grad_().to(device)
+        c0 = torch.zeros(4, batch.shape[0], self.hidden_size).requires_grad_().to(device)
 
         L, (hn, Cn) = self.lstm(embedding, (h0, c0))
         #out = self.linear(hn[0]).flatten()  # First dim of Hn is num_layers, which is set to 1 above.

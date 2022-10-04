@@ -18,7 +18,7 @@ from torchmetrics import Accuracy
 TRAIN = "train"
 DEV = "eval"
 SPLITS = [TRAIN, DEV]
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def main(args):
     with open(args.cache_dir / "vocab.pkl", "rb") as f:
@@ -49,7 +49,7 @@ def main(args):
             args.bidirectional,
             len(intent2idx),
             300)
-    model = model.cuda()
+    model = model.to(device)
 
     # TODO: init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -60,7 +60,7 @@ def main(args):
         # TODO: Training loop - iterate over train dataloader and update model weights
         train_model(train_loader,model,optimizer)
         # TODO: Evaluation loop - calculate accuracy and save model weights
-        #eval_model(test_loader,model)
+        eval_model(test_loader,model)
         pass
 
     # TODO: Inference on test set
@@ -71,29 +71,36 @@ def train_model(data_loader, model, optimizer):
     model.train()
     total_acc = 0
     
+    # model初始化
     model.zero_grad()
     
-    for dataTrans in tqdm(data_loader):
-        X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',dataTrans['text']))).cuda()
-        y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',dataTrans['intent']))).long()
-        y = torch.nn.functional.one_hot(y,num_classes = 150).float().cuda()
+    for data in tqdm(data_loader):
+        X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',data['text']))).to(device)
+        y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',data['intent']))).long()
+        y = torch.nn.functional.one_hot(y,num_classes = 150).float().to(device)
+        
+        # 梯度清零
+        optimizer.zero_grad()
+        
         output = model(X)
+        
+        # 計算loss
         loss = loss_function(output,y)
+        # 反向傳播
         loss.backward()
-
-        #optimizer.zero_grad()
+        # 更新參數
         optimizer.step()
         
+        # 預測結果index
         pred = torch.argmax(output, dim=1)
+        # 正解one hot index
         ans = torch.argmax(y, dim=1)
-        
-        #out = torch.zeros_like(output).scatter_(1, pred.unsqueeze(1), 1.)
-        #total_loss += loss.item()
-        accuracy = Accuracy().cuda()
+
+        accuracy = Accuracy().to(device)
         total_acc += accuracy(pred, ans)
     
     total_acc = total_acc / num_batches
-    print(f"Accuracy: {total_acc * 100} %")
+    print(f"Training Accuracy: {total_acc * 100} %")
     
 def eval_model(data_loader, model):
 
@@ -102,14 +109,20 @@ def eval_model(data_loader, model):
 
     model.eval()
     with torch.no_grad():
-        for X, y in tqdm(data_loader):
-            X = X.cuda()
-            y = y.cuda()
+        for data in tqdm(data_loader):
+            X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',data['text']))).to(device)
+            y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',data['intent']))).long()
+            y = torch.nn.functional.one_hot(y,num_classes = 150).float().to(device)
             output = model(X)
-            total_acc += (output.argmax(1) == y).sum().item()
 
+            pred = torch.argmax(output, dim=1)
+            ans = torch.argmax(y, dim=1)
+            
+            accuracy = Accuracy().to(device)
+            total_acc += accuracy(pred, ans)
+        
     total_acc = total_acc / num_batches
-    print(f"Accuracy: {total_acc}")
+    print(f"Eval Accuracy: {total_acc * 100} %")
     
 def parse_args() -> Namespace:
     parser = ArgumentParser()
