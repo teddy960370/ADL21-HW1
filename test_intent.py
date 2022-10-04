@@ -41,6 +41,7 @@ def main(args):
         dataset.num_classes,
         300
     )
+    model.to(device)
     model.eval()
 
     ckpt = torch.load(args.ckpt_path)
@@ -54,7 +55,7 @@ def main(args):
     # TODO: write prediction to file (args.pred_file)
     data = pd.DataFrame()
     for index,(answer) in enumerate(ans) :
-        d = {'id':'text-' + str(index),'intent':answer}
+        d = {'id':'test-' + str(index),'intent':answer}
         data = data.append(d,ignore_index=True)
         
     data.to_csv(args.pred_file,index=False)

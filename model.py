@@ -35,12 +35,20 @@ class SeqClassifier(torch.nn.Module):
             bidirectional = bidirectional
         )
 
-        self.linear = torch.nn.Linear(in_features=hidden_size*2, out_features=self.num_class)
+        #self.linear = torch.nn.Linear(in_features=hidden_size*2, out_features=self.num_class)
         self.seq = torch.nn.Sequential(
             
-            torch.nn.Linear(512*2*128, num_class),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.5),
+            torch.nn.Linear(512*2*128, 1024),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.5),
+            torch.nn.Linear(1024, 512),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.5),
+            torch.nn.Linear(512, num_class),
             #torch.nn.ReLU(),
-            #torch.nn.Softmax(),
+            torch.nn.Softmax(dim=1),
             
             
             )
@@ -59,8 +67,7 @@ class SeqClassifier(torch.nn.Module):
         c0 = torch.zeros(4, batch.shape[0], self.hidden_size).requires_grad_().to(device)
 
         L, (hn, Cn) = self.lstm(embedding, (h0, c0))
-        #out = self.linear(hn[0]).flatten()  # First dim of Hn is num_layers, which is set to 1 above.
-
+        
         #pred = self.linear(L)
 
         pred = torch.flatten(L, start_dim=1)
@@ -70,7 +77,7 @@ class SeqClassifier(torch.nn.Module):
         return result
 
         
-        raise NotImplementedError
+        #raise NotImplementedError
 
 
 class SeqTagger(SeqClassifier):

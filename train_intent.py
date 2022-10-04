@@ -52,25 +52,25 @@ def main(args):
     model = model.to(device)
 
     # TODO: init optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.001)
 
-    #epoch_pbar = trange(args.num_epoch, desc="Epoch")
-    epoch_pbar = trange(1, desc="Epoch")
+    epoch_pbar = trange(args.num_epoch, desc="Epoch")
+    #epoch_pbar = trange(1, desc="Epoch")
     last_eval_acc = 0
     for epoch in epoch_pbar:
         
         acc = 0
         # TODO: Training loop - iterate over train dataloader and update model weights
         acc = train_model(train_loader,model,optimizer)
-        print(f"Training Accuracy: {acc * 100} %")
+        print(f"\nTraining Accuracy: {acc * 100} %")
         
         # TODO: Evaluation loop - calculate accuracy and save model weights
         acc = eval_model(test_loader,model)
-        print(f"Eval Accuracy: {acc * 100} %")
+        print(f"\nEval Accuracy: {acc * 100} %")
         
         # early stop
-        if(acc < last_eval_acc) :
-            break
+        #if(acc < last_eval_acc) :
+        #    break
         
         last_eval_acc = acc
         pass
@@ -88,18 +88,18 @@ def train_model(data_loader, model, optimizer):
     # model初始化
     model.zero_grad()
     
-    for data in tqdm(data_loader):
+    for data in data_loader:
         X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',data['text']))).to(device)
         y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',data['intent']))).long()
         y = torch.nn.functional.one_hot(y,num_classes = 150).float().to(device)
-        
-        # 梯度清零
-        optimizer.zero_grad()
         
         output = model(X)
         
         # 計算loss
         loss = loss_function(output,y)
+        
+        # 梯度清零
+        optimizer.zero_grad()
         # 反向傳播
         loss.backward()
         # 更新參數
@@ -124,7 +124,7 @@ def eval_model(data_loader, model):
 
     model.eval()
     with torch.no_grad():
-        for data in tqdm(data_loader):
+        for data in data_loader:
             X = torch.from_numpy(np.array(data_loader.dataset.collate_fn('text',data['text']))).to(device)
             y = torch.from_numpy(np.array(data_loader.dataset.collate_fn('intent',data['intent']))).long()
             y = torch.nn.functional.one_hot(y,num_classes = 150).float().to(device)
