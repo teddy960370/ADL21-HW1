@@ -11,7 +11,7 @@ from tqdm import trange
 from dataset import SeqClsDataset
 from utils import Vocab
 from model import SeqClassifier
-from torch.utils.data import DataLoader,TensorDataset
+from torch.utils.data import DataLoader
 import numpy as np
 from torchmetrics import Accuracy
 
@@ -54,16 +54,30 @@ def main(args):
     # TODO: init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    epoch_pbar = trange(args.num_epoch, desc="Epoch")
-    #epoch_pbar = trange(2, desc="Epoch")
+    #epoch_pbar = trange(args.num_epoch, desc="Epoch")
+    epoch_pbar = trange(1, desc="Epoch")
+    last_eval_acc = 0
     for epoch in epoch_pbar:
+        
+        acc = 0
         # TODO: Training loop - iterate over train dataloader and update model weights
-        train_model(train_loader,model,optimizer)
+        acc = train_model(train_loader,model,optimizer)
+        print(f"Training Accuracy: {acc * 100} %")
+        
         # TODO: Evaluation loop - calculate accuracy and save model weights
-        eval_model(test_loader,model)
+        acc = eval_model(test_loader,model)
+        print(f"Eval Accuracy: {acc * 100} %")
+        
+        # early stop
+        if(acc < last_eval_acc) :
+            break
+        
+        last_eval_acc = acc
         pass
 
     # TODO: Inference on test set
+    ckpt_path = args.ckpt_dir / "checkpoint.pt"
+    torch.save(model.state_dict(), str(ckpt_path))
 
 def train_model(data_loader, model, optimizer):
     loss_function = torch.nn.CrossEntropyLoss()
@@ -100,7 +114,8 @@ def train_model(data_loader, model, optimizer):
         total_acc += accuracy(pred, ans)
     
     total_acc = total_acc / num_batches
-    print(f"Training Accuracy: {total_acc * 100} %")
+    return total_acc
+    #print(f"Training Accuracy: {total_acc * 100} %")
     
 def eval_model(data_loader, model):
 
@@ -122,7 +137,8 @@ def eval_model(data_loader, model):
             total_acc += accuracy(pred, ans)
         
     total_acc = total_acc / num_batches
-    print(f"Eval Accuracy: {total_acc * 100} %")
+    return total_acc
+    #print(f"Eval Accuracy: {total_acc * 100} %")
     
 def parse_args() -> Namespace:
     parser = ArgumentParser()
